@@ -1,6 +1,13 @@
-import { IOnICECandidateData, IPeerConnectionData, IWebRTCConnection, IOffer, IReceivedAnswer } from '../../interfaces';
-import {getMediaStream, stopMediaStream} from "../media/getMedia";
-import {IMediaStream} from "../../interfaces/media.interface";
+import { getMediaStream, stopMediaStream } from "../media/getMedia";
+
+import { IMediaStream } from "../../interfaces/media.interface";
+import {
+    IOnICECandidateData,
+    IPeerConnectionData,
+    IWebRTCConnection,
+    IOffer,
+    IReceivedAnswer
+} from '../../interfaces';
 
 const configuration = {
     iceServers: [

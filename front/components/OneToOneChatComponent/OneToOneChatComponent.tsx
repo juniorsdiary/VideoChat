@@ -48,7 +48,7 @@ const OneToOneChatContainer = () => {
     const handleUpdateUsers = useCallback((users: IUser[]) => setUsers(users), []);
 
     const onCreateOffer = async ({ userId, offer }: IOffer) => {
-        const answer = await emit('one2one:sendOffer', { mainUserId: socketId, senderId: userId, offer });
+        const answer = await emit('many2many:sendOffer', { mainUserId: socketId, senderId: userId, offer });
         const peerConnectionInstance = WebRTCController.getPeerConnectionInstance(userId);
 
         if (peerConnectionInstance && userId && answer) {
@@ -61,18 +61,18 @@ const OneToOneChatContainer = () => {
     };
 
     const onIceCandidate = async ({ userId, candidate }: IOnICECandidateData) => {
-        emit('one2one:onIceCandidate', { userId, candidate });
+        emit('many2many:onIceCandidate', { userId, candidate });
     };
 
     const onLocalStreamAvailable = async (stream: IMediaStream) => {
         setLocalStream(stream);
-        const users = await emit('one2one:getCurrentUsers');
+        const users = await emit('many2many:getCurrentUsers');
         const peerConnection = WebRTCController.getPeerConnectionInstance(socketId);
         await peerConnection.connectToVideoChat();
         const usersExceptMe = users.filter((u: IUser) => u.socketId !== socketId);
 
         if (usersExceptMe.length) {
-            emit('one2one:userConnected')
+            emit('many2many:userConnected')
             const promiseConnections = usersExceptMe.map((u: IUser) => handleConnectToUser.bind(this, { userId: u.socketId }));
             await executePromiseQueue(promiseConnections);
         }
@@ -121,7 +121,7 @@ const OneToOneChatContainer = () => {
         (async () => {
             if (router?.query?.token && socketId) {
                 const data = await emit(
-                    'one2one:joinRoom',
+                    'many2many:joinRoom',
                     { roomId: router?.query?.token },
                 );
                 handleUpdateUsers(data.users);
@@ -131,10 +131,10 @@ const OneToOneChatContainer = () => {
 
     useEffect(() => {
         if (socketId) {
-            subscribe('one2one:iceCandidate', handleAddIceCandidate);
-            subscribe('one2one:userLeft', handleUserLeft);
-            subscribe('one2one:userConnected', handleConnectToUser);
-            subscribe('one2one:availableUsers', handleUpdateUsers);
+            subscribe('many2many:iceCandidate', handleAddIceCandidate);
+            subscribe('many2many:userLeft', handleUserLeft);
+            subscribe('many2many:userConnected', handleConnectToUser);
+            subscribe('many2many:availableUsers', handleUpdateUsers);
         }
     }, [socketId]);
 

@@ -5,6 +5,8 @@ const kurentoClient = null;
 
 const getCandidate = (candidate) => kurento.getComplexType('IceCandidate')(candidate);
 
+const createEndPoints = async (pipeline) => pipeline.create('WebRtcEndpoint');
+
 const getKurentoClient = async () => {
     if (kurentoClient !== null) {
         return kurentoClient;
@@ -22,12 +24,6 @@ const generateSdpAnswer = async (endpoint, offer) => {
     endpoint.gatherCandidates();
 
     return answer;
-};
-
-const createEndPoints = async (pipeline) => {
-    const endpoint = await pipeline.create('WebRtcEndpoint');
-
-    return endpoint;
 };
 
 const generatePipeline = async () => {

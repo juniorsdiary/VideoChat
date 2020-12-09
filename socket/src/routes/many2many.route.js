@@ -1,7 +1,7 @@
 const { SocketEndpoint } = require('../utils/SocketEndpoint');
-const controller = require('../controllers/one2one.controller');
+const controller = require('../controllers/many2many.controller');
 
-const router = new SocketEndpoint('one2one:');
+const router = new SocketEndpoint('many2many:');
 
 router.addRoute(
     { path: 'createRoom' },
@@ -26,11 +26,6 @@ router.addRoute(
 router.addRoute(
     { path: 'sendOffer' },
     controller.sendOffer,
-);
-
-router.addRoute(
-    { path: 'connectToUser' },
-    controller.connectToUser,
 );
 
 router.addRoute(

@@ -1,4 +1,7 @@
-const { setValue, getValue } = require('../models/redis/common');
+const { setValue, getValue, removeValue } = require('../models/redis/common');
+const logger = require('../utils/logger');
+
+const uuid = require('uuid');
 
 const candidatesQueue = {};
 const sessions = {};
@@ -10,106 +13,185 @@ const { getNewInstance } = require('../helpers/One2OneHelper');
 
 const ChatInstance = getNewInstance();
 
-const joinRoom = async (socketTransport, data) => {
+const createRoom = async (socketTransport, data, cb) => {
+    logger.info('createRoom', data);
+    const roomId = uuid.v4();
+
+    const newRoom = {
+        roomId,
+        roomName: data.roomName,
+        users: []
+    };
+
+    await setValue(roomId, newRoom);
+
+    if (cb) cb({ result: newRoom });
+}
+
+const joinRoom = async (socketTransport, data, cb) => {
+    logger.info('joinRoom', data);
     try {
-        socketTransport.joinRoom(data.room);
+        socketTransport.joinRoom(data.roomId);
+
         const updatedUser = {
-            ...user,
+            roomId: data.roomId,
             socketId: socketTransport.id,
         };
+
         await setValue(updatedUser.socketId, updatedUser);
-        const clients = await socketTransport.getClients(data.room);
-        const users = clients.map(async (id) => getValue(id));
-        const promised = await Promise.all(users);
 
-        ChatInstance.registerUser(socketTransport, updatedUser);
+        const room = await getValue(data.roomId);
 
-        socketTransport.sendToRoom(data.room, 'common:showUsers', { users: promised });
+        const updatedRoom = {
+            ...room,
+            users: [...room.users, updatedUser]
+        }
+
+        await setValue(data.roomId, updatedRoom);
+
+        ChatInstance.registerUser(socketTransport.id, updatedUser);
+
+        let pipeline = ChatInstance.pipeline;
+
+        if (!pipeline) {
+            ChatInstance.pipeline = await generatePipeline();
+        }
+
+        await createMainUserEndPoint(socketTransport);
+
+        socketTransport.sendToOthersInRoom(
+            data.roomId,
+            'many2many:availableUsers',
+            updatedRoom.users
+        );
+
+        if (cb) {
+            cb({ result: updatedRoom });
+        }
     } catch (e) {
         console.log(e);
     }
 };
 
-const sendOffer = async (socketTransport, { userId, sdpOffer }) => {
+const disconnect = async (socketTransport, data) => {
+    try {
+        logger.info('disconnect', data);
+        const user = await getValue(socketTransport.id);
+        const room = await getValue(user.roomId);
+
+        await setValue(user.roomId, {
+            ...room,
+            users: room.users.filter(user => user.socketId !== socketTransport.id),
+        });
+
+        ChatInstance.releaseEndPoints(socketTransport.id);
+        ChatInstance.removeUser(socketTransport.id);
+        await removeValue(socketTransport.id);
+        socketTransport.sendToOthersInRoom(
+            user.roomId,
+            'many2many:userLeft',
+            { userId: socketTransport.id }
+        );
+    } catch (e) {
+        logger.error(e.message);
+    }
+}
+
+const sendOffer = async (socketTransport, { mainUserId, senderId, offer }, cb) => {
+    logger.info('sendOffer', { mainUserId, senderId });
     clearCandidatesQueue(socketTransport.id);
 
-    ChatInstance.updateUserData({ id: socketTransport.id, offer: sdpOffer });
+    const mediaEndPoint = await getEndpointForUser(socketTransport, ChatInstance.pipeline, mainUserId, senderId);
 
-    const pipeline = await generatePipeline();
+    if (mediaEndPoint) {
+        const sdpAnswer = await generateSdpAnswer(mediaEndPoint, offer.sdp);
 
-    ChatInstance.initCallerAndCallee(socketTransport.id, userId);
+        addCandidates(mediaEndPoint, candidatesQueue, mainUserId);
 
-    const caller = ChatInstance.getCaller();
-
-    const callerEndpoint = await createEndPoints(pipeline);
-
-    callerEndpoint.on('OnIceCandidate', (event) => {
-        const candidate = getCandidate(event.candidate);
-        socketTransport.sendToSocket(socketTransport.socket, 'one2one:iceCandidate', {
-            candidate,
-        });
-    });
-
-    ChatInstance.updateUserMedia({ id: caller.id, pipeline, endpoint: callerEndpoint });
-
-    addCandidates(callerEndpoint, candidatesQueue, caller.id);
-
-    const sdpAnswer = await generateSdpAnswer(callerEndpoint, caller.offer);
-
-    socketTransport.sendToSocket(
-        socketTransport.socket,
-        'one2one:sendAnswer',
-        { id: caller.id, sdpAnswer },
-    );
-
-    socketTransport.sendToSocketId(
-        userId,
-        'one2one:callProposal',
-        { id: caller.id },
-    );
+        if (cb) cb({ result: sdpAnswer });
+    }
 };
 
-const sendAnswer = async (socketTransport, { offer }) => {
-    clearCandidatesQueue(socketTransport.id);
-    ChatInstance.updateUserData({ id: socketTransport.id, offer });
+const createMainUserEndPoint = async (socket) => {
+    clearCandidatesQueue(socket.id);
+    const mainUser =  ChatInstance.getUser(socket.id);
+    const mainUserEndPoint = await createEndPoints(ChatInstance.pipeline);
 
-    const callee = ChatInstance.getCallee();
+    ChatInstance.updateUserMedia({ id: mainUser.id, mainUserEndPoint });
 
-    const pipeline = ChatInstance.getMainPipeline();
-
-    const calleeEndpoint = await createEndPoints(pipeline);
-
-    calleeEndpoint.on('OnIceCandidate', (event) => {
+    mainUserEndPoint.on('OnIceCandidate', (event) => {
         const candidate = getCandidate(event.candidate);
-        socketTransport.sendToSocket(socketTransport.socket, 'one2one:iceCandidate', {
-            candidate,
-        });
+        socket.sendToSocket(
+            socket.socket,
+            'many2many:iceCandidate',
+            { userId: socket.id, candidate }
+        );
     });
+}
 
-    const { endpoint: callerEndpoint } = ChatInstance.getCaller();
+const getEndpointForUser = async (socketTransport, pipeline, userId, senderId) => {
+    try {
+        const mainUser =  ChatInstance.getUser(userId);
+        const senderUser = ChatInstance.getUser(senderId);
 
-    ChatInstance.updateUserMedia({ id: callee.id, pipeline, endpoint: calleeEndpoint });
+        if (userId === senderId) {
+            return mainUser.mainUserEndPoint;
+        }
+        const senderEndPoint = await createEndPoints(ChatInstance.pipeline);
 
-    addCandidates(calleeEndpoint, candidatesQueue, callee.id);
+        senderEndPoint.on('OnIceCandidate', (event) => {
+            const candidate = getCandidate(event.candidate);
 
-    callerEndpoint.connect(calleeEndpoint);
-    calleeEndpoint.connect(callerEndpoint);
+            socketTransport.sendToSocket(
+                socketTransport.socket,
+                'many2many:iceCandidate',
+                { userId: socketTransport.id, candidate }
+            );
+        });
 
-    const sdpAnswer = await generateSdpAnswer(calleeEndpoint, callee.offer);
+        addCandidates(senderEndPoint, candidatesQueue, mainUser.id);
 
-    socketTransport.sendToSocket(
-        socketTransport.socket,
-        'one2one:sendAnswer',
-        { id: callee.id, sdpAnswer },
-    );
+        ChatInstance.updateSenderEndpoints({ id: mainUser.id, senderId, senderEndPoint });
+
+        senderUser.mainUserEndPoint.connect(senderEndPoint);
+        senderEndPoint.connect(senderUser.mainUserEndPoint);
+
+        return senderEndPoint;
+    } catch (e) {
+        logger.error(e.message);
+    }
 };
 
 const onIceCandidate = async (socketTransport, message) => {
     await onIceCandidateController(socketTransport.id, message.candidate, candidatesQueue, sessions);
 };
 
+const userConnected = (socketTransport, data) => {
+    logger.info('userConnected', data);
+    const user = ChatInstance.getUser(socketTransport.id);
 
+    socketTransport.sendToOthersInRoom(
+        user.roomId,
+        'many2many:userConnected',
+        { userId: user.socketId }
+    );
+}
+
+const getCurrentUsers = (socketTransport, data, cb) => {
+    try {
+        logger.info('getCurrentUsers', data);
+        const users = ChatInstance.getUsersArray().map(u => ({ socketId: u.id, roomId: u.roomId }));
+        if (cb) cb({ result: users });
+    } catch (e) {
+        logger.error(e.message)
+    }
+
+}
+
+exports.createRoom = createRoom;
 exports.joinRoom = joinRoom;
+exports.disconnect = disconnect;
 exports.sendOffer = sendOffer;
-exports.sendAnswer = sendAnswer;
+exports.userConnected = userConnected;
 exports.onIceCandidate = onIceCandidate;
+exports.getCurrentUsers = getCurrentUsers;
