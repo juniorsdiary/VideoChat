@@ -177,4 +177,18 @@ export class WebRtcPeerConnection implements IWebRTCConnection {
         pc.getLocalStreams().forEach(stopMediaStream);
         pc.close();
     }
+
+    applyNewLocalStream = (stream: IMediaStream): void => {
+        const pc = this.peerConnection;
+        const videoTrack = stream?.getVideoTracks()[0];
+        const audioTrack = stream?.getAudioTracks()[0];
+
+        const senders = pc.getSenders();
+
+        senders.forEach(sender => {
+            if (sender.track?.kind === 'video' && videoTrack) sender.replaceTrack(videoTrack);
+            if (sender.track?.kind === 'audio' && audioTrack) sender.replaceTrack(audioTrack);
+        });
+        return;
+    }
 }

@@ -131,6 +131,7 @@ const createMainUserEndPoint = async (socket) => {
 const getEndpointForUser = async (socketTransport, pipeline, userId, senderId) => {
     try {
         const mainUser =  ChatInstance.getUser(userId);
+        const senderUser = ChatInstance.getUser(senderId);
 
         if (userId === senderId) {
             return mainUser.mainUserEndPoint;
@@ -151,7 +152,7 @@ const getEndpointForUser = async (socketTransport, pipeline, userId, senderId) =
 
         ChatInstance.updateSenderEndpoints({ id: mainUser.id, senderId, senderEndPoint });
 
-        mainUser.mainUserEndPoint.connect(senderEndPoint);
+        senderUser.mainUserEndPoint.connect(senderEndPoint);
 
         return senderEndPoint;
     } catch (e) {

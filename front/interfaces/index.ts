@@ -28,6 +28,7 @@ export interface IWebRTCConnection {
     connectToVideoChat: () => void;
     getRemoteStream: () => MediaStream | undefined;
     onLocalStreamAvailable?: (data: IMediaStream) => void;
+    applyNewLocalStream: (stream: IMediaStream) => void;
     release: () => void;
 }
 
