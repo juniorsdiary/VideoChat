@@ -15,7 +15,7 @@ export const MEDIA_DEVICES_RESOLUTIONS = [
         label: "UXGA",
         width: 1600,
         height: 1200,
-        ratio: 4 / 3
+        ratio: 16 / 9
     },
     {
         label: "720p(HD)",
@@ -27,13 +27,13 @@ export const MEDIA_DEVICES_RESOLUTIONS = [
         label: "SVGA",
         width: 800,
         height: 600,
-        ratio: 4 / 3
+        ratio: 16 / 9
     },
     {
         label: "VGA",
         width: 640,
         height: 480,
-        ratio: 4 / 3
+        ratio: 16 / 9
     },
     {
         label: "360p(nHD)",
@@ -45,24 +45,24 @@ export const MEDIA_DEVICES_RESOLUTIONS = [
         label: "CIF",
         width: 352,
         height: 288,
-        ratio: 4 / 3
+        ratio: 16 / 9
     },
     {
         label: "QVGA",
         width: 320,
         height: 240,
-        ratio: 4 / 3
+        ratio: 16 / 9
     },
     {
         label: "QCIF",
         width: 176,
         height: 144,
-        ratio: 4 / 3
+        ratio: 16 / 9
     },
     {
         label: "QQVGA",
         width: 160,
         height: 120,
-        ratio: 4 / 3
+        ratio: 16 / 9
     }
 ];

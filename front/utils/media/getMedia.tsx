@@ -18,7 +18,7 @@ export const getMediaDevicesResolution = (audioDevice: IStreamMediaDevice, video
             video: {
                 aspectRatio: constrain.ratio,
                 deviceId: videoDevice?.deviceId || true,
-                height: constrain.height,
+                height: { exact: constrain.height }
             },
             audio: {
                 deviceId: audioDevice?.deviceId || true
@@ -57,12 +57,8 @@ export const getMediaStream = async ({ audio, video }: IGetMediaArguments): Prom
     return stream;
 }
 
-export const getMediaStreamWithConstrain = async (constrain: any) => {
-    try {
-        return await navigator.mediaDevices.getUserMedia(constrain);
-    } catch (e) {
-        throw new Error(e.message);
-    }
+export const getMediaStreamWithConstrain = async (constrain: any): Promise<MediaStream> => {
+    return await navigator.mediaDevices.getUserMedia(constrain);
 }
 
 export const getMediaDevices = async (): Promise<IMediaDevices> => {
@@ -92,7 +88,7 @@ export const getMediaDevicesConstraints = ({ audio, video }: IMediaDevicesIdInpu
             video: {
                 aspectRatio: 16 / 9,
                 deviceId: video,
-                height: 144,
+                height: { exact: 120 },
             },
             audio: { deviceId: audio },
         },
@@ -100,7 +96,7 @@ export const getMediaDevicesConstraints = ({ audio, video }: IMediaDevicesIdInpu
             video: {
                 aspectRatio: 16 / 9,
                 deviceId: video,
-                height: 240,
+                height: { exact: 120 },
             },
             audio: { deviceId: audio },
         },

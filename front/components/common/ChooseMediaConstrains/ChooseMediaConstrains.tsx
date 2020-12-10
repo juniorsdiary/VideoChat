@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { IChooseMediaConstrainsProps } from "../../../interfaces";
 
@@ -9,23 +9,35 @@ const ChooseMediaConstrains = ({ onChangeMediaConstrains, currentAudioDevice, cu
     const [availableResolutions, setAvailableResolutions] = useState<any>([]);
 
     useEffect(() => {
-        const deviceResolutions = getMediaDevicesResolution(currentAudioDevice, currentVideoDevice);
-        for (let i = 0; i < deviceResolutions.length - 1; i++) {
-            setTimeout(() => {
-                getMediaStreamWithConstrain({video: deviceResolutions[i].video, audio: deviceResolutions[i].audio })
-                    .then(stream => {
+        (async () => {
+            const deviceResolutions = getMediaDevicesResolution(currentAudioDevice, currentVideoDevice);
+
+            const devicePromises = deviceResolutions.map(async (resolution: any) => {
+                try {
+                    const stream = await getMediaStreamWithConstrain({
+                        video: resolution.video,
+                        audio: resolution.audio
+                    });
+
+                    if (stream) {
                         stopMediaStream(stream);
-                        setAvailableResolutions((prev: any) => ([...prev, deviceResolutions[i]]));
-                    })
-                    .catch(e => {
-                        console.log(e);
-                    })
-            }, 1000);
-        }
-    }, []);
+                        return resolution;
+                    }
+                } catch (e) {
+                    console.log(e.name)
+                }
+            });
+            const result = await Promise.all(devicePromises);
+
+            setAvailableResolutions(result.filter(u => Boolean(u)));
+        })();
+    }, [currentAudioDevice, currentVideoDevice]);
 
     const handleChooseResolution = (resolution: any) => {
-        onChangeMediaConstrains({ video: resolution.video, audio: resolution.audio });
+        onChangeMediaConstrains({
+            video: resolution.video,
+            audio: resolution.audio
+        });
     }
 
     return (
@@ -34,10 +46,12 @@ const ChooseMediaConstrains = ({ onChangeMediaConstrains, currentAudioDevice, cu
                 Choose Media Constrains
             </p>
             <ul>
-                {availableResolutions.map((resolution: any, i: number) => {
-                    return (
-                        <li key={`${resolution.label}_${i}`} onClick={() => handleChooseResolution(resolution)}>{resolution.label}</li>
-                    )
+                {availableResolutions && availableResolutions.map((resolution: any, i: number) => {
+                    if (resolution) {
+                        return (
+                            <li key={`${resolution.label}_${i}`} onClick={() => handleChooseResolution(resolution)}>{resolution.label}</li>
+                        )
+                    }
                 })}
             </ul>
         </div>

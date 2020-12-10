@@ -45,11 +45,12 @@ const OneToOneChatContainer = () => {
     }, [socketId]);
 
     const applyStreamToPeerConnection = async (newStream: IMediaStream) => {
-        stopMediaStream(localStream);
         const newDevices = await getCurrentDevicesFromStream(newStream);
         const peerConnection = WebRTCController.getPeerConnectionInstance(socketId);
+
         if (peerConnection && newStream) {
             setLocalStream(newStream);
+
             peerConnection.applyNewLocalStream(newStream);
             setCurrentDevices({
                 audio: newDevices.audio,
@@ -58,15 +59,46 @@ const OneToOneChatContainer = () => {
         }
     }
 
+    const applyConstrainsToStream = async (constrains: any) => {
+        const videoTracks = localStream?.getVideoTracks();
+        const audioTracks = localStream?.getAudioTracks();
+        if (videoTracks) {
+            const videoTrackPromises = videoTracks.map(async track => {
+                await track.applyConstraints(constrains.video);
+            });
+            await Promise.all(videoTrackPromises);
+        }
+
+        if (audioTracks) {
+            const audioTrackPromises = audioTracks.map(async track => {
+                await track.applyConstraints(constrains.audio);
+            });
+            await Promise.all(audioTrackPromises);
+        }
+    }
+
     const handleUpdateUsers = useCallback((users: IUser[]) => setUsers(users), []);
 
-    const handleChooseMediaConstrains = async (constrains: IMediaConstrains) => {
-        const stream = await getMediaStreamWithConstrain(constrains);
-        await applyStreamToPeerConnection(stream);
+    const handleChooseMediaConstrains = async (constrains: any) => {
+        // change stream hardly
+
+        // stopMediaStream(localStream);
+        // const stream = await getMediaStreamWithConstrain(constrains);
+        // await applyStreamToPeerConnection(stream);
+
+        // change tracks in existing stream
+        await applyConstrainsToStream(constrains);
     }
 
     const onCreateOffer = async ({ userId, offer }: IOffer) => {
-        const answer = await emit('many2many:sendOffer', { mainUserId: socketId, senderId: userId, offer });
+        const answer = await emit('many2many:sendOffer',
+            {
+                mainUserId: socketId,
+                senderId: userId,
+                offer
+            }
+        );
+
         const peerConnectionInstance = WebRTCController.getPeerConnectionInstance(userId);
 
         if (peerConnectionInstance && userId && answer) {
@@ -84,12 +116,14 @@ const OneToOneChatContainer = () => {
 
     const onLocalStreamAvailable = async (stream: IMediaStream) => {
         setLocalStream(stream);
+
         const currentDevices = await getCurrentDevicesFromStream(stream);
 
         setCurrentDevices({
             audio: currentDevices.audio,
             video: currentDevices.video
         });
+
         const users = await emit('many2many:getCurrentUsers');
         const peerConnection = WebRTCController.getPeerConnectionInstance(socketId);
         await peerConnection.connectToVideoChat();
@@ -162,16 +196,12 @@ const OneToOneChatContainer = () => {
         }
     }, [socketId]);
 
-    useEffect(() => {
-        navigator.mediaDevices.ondevicechange = () => {
-            console.log('devices changed')
-        }
-    }, [])
-
     return (
         <>
             Video Chat Room
-            <ChooseDevices onChooseMediaDevice={handleSetMediaDevice} />
+            <ChooseDevices
+                onChooseMediaDevice={handleSetMediaDevice}
+            />
             {(currentDevices.video && currentDevices.audio) && (
                 <ChooseMediaConstrains
                     currentAudioDevice={currentDevices.audio}

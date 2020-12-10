@@ -25,7 +25,6 @@
 1. GraphQL
 
 ### Things to do
-1. Dynamically apply constrains
 1. Mute audio and video
 1. Changing sdp for bitrate and codec
 1. Simulcast
