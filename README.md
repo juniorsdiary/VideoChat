@@ -26,9 +26,9 @@
 
 ### Things to do
 1. Mute audio and video
-1. Changing sdp for bitrate and codec
 1. Simulcast
 1. Make conference work in Safari
+   
 1. Setting turn
 1. Payments
 1. Recordings

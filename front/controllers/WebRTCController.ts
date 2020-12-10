@@ -43,19 +43,6 @@ class WebRTCControllerConstructor {
         const peerConnectionInstance = this.getPeerConnectionInstance(userId);
         peerConnectionInstance?.release();
     }
-
-    // updateCodecPriority(sdp) {
-    //     // prefer vp8 codec instead of transcoding
-    //     const vp8 = sdp.match(/a=rtpmap:.* VP8\/90000/gi);
-    //     if (!vp8) {
-    //         return sdp;
-    //     }
-    //     const vp8Payloads = vp8.map(h => h.split('rtpmap:')[1].split('VP8')[0].trim());
-    //     const mVideo = sdp.match(/m=video .*/i)[0].split(' ');
-    //     const videoData = mVideo.slice(0, 3).join(' ');
-    //     const existedPayloads = mVideo.slice(3, mVideo.length - 1).filter(p => !vp8Payloads.includes(p));
-    //     return sdp.replace(/m=video .*/i, `${videoData} ${vp8Payloads.join(' ')} ${existedPayloads.join(' ')}`);
-    // }
 }
 
 const controller = new WebRTCControllerConstructor();
