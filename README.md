@@ -15,14 +15,6 @@
 1. Next.js
 1. WebRTC
 
-### Features
-1. Payments
-1. Recordings
-1. Streaming of videos
-1. AWS
-1. storage of files
-1. Playing recorded videos
-
 ### Technologies to use
 1. MySQL
 1. RabbitMQ
@@ -32,13 +24,19 @@
 1. CI/CD
 1. GraphQL
 
-### Some things to note
+### Things to do
 1. Dynamically apply constrains
 1. Mute audio and video
 1. Changing sdp for bitrate and codec
 1. Simulcast
 1. Make conference work in Safari
 1. Setting turn
+1. Payments
+1. Recordings
+1. Streaming of videos
+1. AWS
+1. storage of files
+1. Playing recorded videos
 
 ### Questions ?
 1. RestartIce
@@ -47,3 +45,4 @@
 1. Balancing of kurento
 1. Configuration with turn
 1. Securing Kurento
+1. coturn

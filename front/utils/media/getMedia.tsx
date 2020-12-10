@@ -5,8 +5,27 @@ import {
     IGetMediaArguments,
     IMediaDevices,
     IConstrains,
-    IStreamMediaDevices
+    IStreamMediaDevices,
+    IStreamMediaDevice
 } from '../../interfaces/media.interface';
+
+import { MEDIA_DEVICES_RESOLUTIONS } from '../../const/mediaDevicesResolutions';
+
+export const getMediaDevicesResolution = (audioDevice: IStreamMediaDevice, videoDevice: IStreamMediaDevice) => {
+    return MEDIA_DEVICES_RESOLUTIONS.map(constrain => {
+        return {
+            label: constrain.label,
+            video: {
+                aspectRatio: constrain.ratio,
+                deviceId: videoDevice?.deviceId || true,
+                height: constrain.height,
+            },
+            audio: {
+                deviceId: audioDevice?.deviceId || true
+            },
+        }
+    });
+}
 
 export const getMediaStream = async ({ audio, video }: IGetMediaArguments): Promise<IMediaStream> => {
     const devices: IMediaDevices = await getMediaDevices();
@@ -36,6 +55,14 @@ export const getMediaStream = async ({ audio, video }: IGetMediaArguments): Prom
     }
 
     return stream;
+}
+
+export const getMediaStreamWithConstrain = async (constrain: any) => {
+    try {
+        return await navigator.mediaDevices.getUserMedia(constrain);
+    } catch (e) {
+        throw new Error(e.message);
+    }
 }
 
 export const getMediaDevices = async (): Promise<IMediaDevices> => {

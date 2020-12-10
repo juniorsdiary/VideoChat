@@ -5,7 +5,7 @@ const Navigation = () => {
     return (
         <ul>
             <li>
-                <Link href={'/one2one'}>One to One VideoChat</Link>
+                <Link href={'/many2many'}>One to One VideoChat</Link>
             </li>
         </ul>
     );

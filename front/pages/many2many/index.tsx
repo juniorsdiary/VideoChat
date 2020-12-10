@@ -12,8 +12,8 @@ const VideoChatRoom: React.FC = () => {
 
     const handleCreateRoom = useCallback(async (e) => {
         e.preventDefault();
-        const newRoom = await emit('one2one:createRoom', { roomName });
-        await router.push(`/one2one/${newRoom.roomId}`);
+        const newRoom = await emit('many2many:createRoom', { roomName });
+        await router.push(`/many2many/${newRoom.roomId}`);
     }, [roomName]);
 
     const handleSetRoomName = useCallback(({ target: { value } }) => {

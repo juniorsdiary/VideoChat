@@ -1,4 +1,4 @@
-import { IMediaStream }from './media.interface';
+import { IMediaConstrains, IMediaStream, IStreamMediaDevice } from './media.interface';
 
 export interface ICreatePeerConnection {
     userId: string;
@@ -64,4 +64,10 @@ export interface IRemoteData {
 export interface ISocketData {
     userId: string;
     candidate?: RTCIceCandidate;
+}
+
+export interface IChooseMediaConstrainsProps {
+    onChangeMediaConstrains: (constrains: IMediaConstrains) => void;
+    currentAudioDevice: IStreamMediaDevice;
+    currentVideoDevice: IStreamMediaDevice;
 }

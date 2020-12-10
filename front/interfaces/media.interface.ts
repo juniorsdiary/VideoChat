@@ -18,8 +18,14 @@ export interface IConstrains {
 }
 
 export interface IStreamMediaDevices {
-    audio: MediaDeviceInfo | null | undefined;
-    video: MediaDeviceInfo | null | undefined;
+    audio: IStreamMediaDevice;
+    video: IStreamMediaDevice;
+}
+
+export type IStreamMediaDevice = MediaDeviceInfo | null | undefined
+
+export interface IMediaConstrains {
+
 }
 
 export type IMediaStream = MediaStream | null | undefined;

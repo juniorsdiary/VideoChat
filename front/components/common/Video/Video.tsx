@@ -20,6 +20,7 @@ const Video = ({ stream, muted }: VideoProps) => {
     return (
         <div>
             <video
+                style={{ width: '700px' }}
                 ref={video}
                 muted={muted}
                 autoPlay
