@@ -18,7 +18,7 @@ import { ChooseMediaConstrains } from '../../components/common/ChooseMediaConstr
 import { Video } from '../../components/common/Video';
 
 // interfaces and types
-import { IOffer, IUser, IRemoteData, ISocketData, IOnICECandidateData } from '../../interfaces';
+import { IOffer, IUser, IRemoteData, ILocalData, ISocketData, IOnICECandidateData } from '../../interfaces';
 import { IMediaStream, IMediaConstrains, IStreamMediaDevices } from '../../interfaces/media.interface';
 
 const OneToOneChatContainer = () => {
@@ -29,17 +29,21 @@ const OneToOneChatContainer = () => {
 
     // state
     const [users, setUsers] = useState<IUser[]>([]);
-    const [localStream, setLocalStream] = useState<IMediaStream>(null);
+    const [localUserData, setLocalUserData] = useState<ILocalData>({ userId: socketId, isAudioMuted: false, isVideoMuted: false });
     const [remoteStreams, setRemoteStreams] = useState<IRemoteData[]>([]);
     const [currentDevices, setCurrentDevices] = useState<IStreamMediaDevices>({ audio: null, video: null });
 
     const router = useRouter();
 
     const handleSetMediaDevice = useCallback(async ({ audio, video }) => {
-        const currentDevices = await getCurrentDevicesFromStream(localStream);
+        const currentDevices = await getCurrentDevicesFromStream(localUserData.stream);
 
-        if (audio && currentDevices.audio?.deviceId !== audio || video && currentDevices.video?.deviceId !== video) {
+        if (
+            audio && currentDevices.audio?.deviceId !== audio
+            || video && currentDevices.video?.deviceId !== video
+        ) {
             const stream = await getMediaStream({ audio, video });
+
             await applyStreamToPeerConnection(stream);
         }
     }, [socketId]);
@@ -49,9 +53,10 @@ const OneToOneChatContainer = () => {
         const peerConnection = WebRTCController.getPeerConnectionInstance(socketId);
 
         if (peerConnection && newStream) {
-            setLocalStream(newStream);
+            setLocalUserData({ userId: socketId, stream: newStream, isAudioMuted: true, isVideoMuted: true });
 
             peerConnection.applyNewLocalStream(newStream);
+
             setCurrentDevices({
                 audio: newDevices.audio,
                 video: newDevices.video
@@ -60,8 +65,8 @@ const OneToOneChatContainer = () => {
     }
 
     const applyConstrainsToStream = async (constrains: any) => {
-        const videoTracks = localStream?.getVideoTracks();
-        const audioTracks = localStream?.getAudioTracks();
+        const videoTracks = localUserData?.stream?.getVideoTracks();
+        const audioTracks = localUserData?.stream?.getAudioTracks();
         if (videoTracks) {
             const videoTrackPromises = videoTracks.map(async track => {
                 await track.applyConstraints(constrains.video);
@@ -82,7 +87,7 @@ const OneToOneChatContainer = () => {
     const handleChooseMediaConstrains = async (constrains: any) => {
         // change stream hardly
 
-        // stopMediaStream(localStream);
+        // stopMediaStream(localUserData.stream);
         // const stream = await getMediaStreamWithConstrain(constrains);
         // await applyStreamToPeerConnection(stream);
 
@@ -105,7 +110,8 @@ const OneToOneChatContainer = () => {
             await peerConnectionInstance.processAnswer({ answer });
             const stream = peerConnectionInstance.getRemoteStream();
             if (userId !== socketId) {
-                setRemoteStreams(prev => ([...prev, { userId, stream }]));
+                const newUserData = { userId, stream, isAudioMuted: true, isVideoMuted: true };
+                setRemoteStreams(prev => ([ ...prev, newUserData ]));
             }
         }
     };
@@ -115,7 +121,7 @@ const OneToOneChatContainer = () => {
     };
 
     const onLocalStreamAvailable = async (stream: IMediaStream) => {
-        setLocalStream(stream);
+        setLocalUserData(prev => ({ ...prev, stream }));
 
         const currentDevices = await getCurrentDevicesFromStream(stream);
 
@@ -160,6 +166,44 @@ const OneToOneChatContainer = () => {
             await peerConnection.connectToVideoChat();
         }
     };
+
+    const handleToggleCapability = (data: { userId: string; toggleValue: boolean, kind: string }) => {
+        const isLocalUser = data.userId === socketId;
+        const key = data.kind === 'Audio' ? 'getAudioTracks' : 'getVideoTracks';
+        if (isLocalUser) {
+            setLocalUserData(prev => {
+                const stream = prev.stream;
+                if (stream) {
+                    stream[key]().forEach(track => {
+                        track.enabled = data.toggleValue;
+                    });
+                    return {
+                        ...prev,
+                        [`is${data.kind}Muted`]: data.toggleValue,
+                    };
+                }
+                return prev;
+            })
+        } else {
+            setRemoteStreams(prev => {
+                return prev.map(remoteUserData => {
+                    if (remoteUserData.userId === data.userId) {
+                        const stream = remoteUserData.stream;
+                        if (stream) {
+                            stream[key]().forEach(track => {
+                                track.enabled = data.toggleValue;
+                            });
+                            return {
+                                ...remoteUserData,
+                                [`is${data.kind}Muted`]: data.toggleValue,
+                            };
+                        }
+                    }
+                    return remoteUserData;
+                });
+            })
+        }
+    }
 
     useEffect(() => {
         (async () => {
@@ -209,12 +253,22 @@ const OneToOneChatContainer = () => {
                     onChangeMediaConstrains={handleChooseMediaConstrains}
                 />
             )}
-            <Video stream={localStream} muted />
+            <Video
+                userId={socketId}
+                stream={localUserData?.stream}
+                isAudioMuted={localUserData?.isAudioMuted}
+                isVideoMuted={localUserData?.isVideoMuted}
+                onToggleCapability={handleToggleCapability}
+                muted
+            />
             {remoteStreams?.map((remoteData: IRemoteData) => (
                 <Video
                     key={remoteData.userId}
                     stream={remoteData.stream}
                     userId={remoteData.userId}
+                    isAudioMuted={remoteData.isAudioMuted}
+                    isVideoMuted={remoteData.isVideoMuted}
+                    onToggleCapability={handleToggleCapability}
                 />
             ))}
         </>

@@ -59,6 +59,15 @@ export interface IUser {
 export interface IRemoteData {
     userId: string;
     stream: IMediaStream
+    isAudioMuted: boolean;
+    isVideoMuted: boolean;
+}
+
+export interface ILocalData {
+    userId: string;
+    stream?: IMediaStream
+    isAudioMuted: boolean;
+    isVideoMuted: boolean;
 }
 
 export interface ISocketData {
