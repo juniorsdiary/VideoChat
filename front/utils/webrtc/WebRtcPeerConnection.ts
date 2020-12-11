@@ -9,6 +9,7 @@ import {
     IOffer,
     IReceivedAnswer
 } from '../../interfaces';
+import {log} from "util";
 
 const configuration = {
     iceServers: [
@@ -134,10 +135,12 @@ export class WebRtcPeerConnection implements IWebRTCConnection {
         const sdpOffer = await pc.createOffer();
 
         const offerVP8 = this.updateCodecPriority(sdpOffer.sdp);
+        const [videoStream] = this.peerConnection.getLocalStreams();
+        const simulcastOffer = `${this.removeFIDFromOffer(offerVP8)}${this.getSimulcastInfo(videoStream)}`;
 
         const offer = new RTCSessionDescription({
             type: 'offer',
-            sdp: offerVP8
+            sdp: simulcastOffer
         });
 
         await pc.setLocalDescription(offer);
@@ -213,5 +216,46 @@ export class WebRtcPeerConnection implements IWebRTCConnection {
         const videoData = mVideo.slice(0, 3).join(' ');
         const existedPayloads = mVideo.slice(3, mVideo.length - 1).filter(p => !vp8Payloads.includes(p));
         return sdp.replace(/m=video .*/i, `${videoData} ${vp8Payloads.join(' ')} ${existedPayloads.join(' ')}`);
+    }
+
+    removeFIDFromOffer = (sdp: string | undefined): string | undefined => {
+        if (sdp) {
+            const n = sdp.indexOf("a=ssrc-group:FID");
+
+            if (n > 0) {
+                return sdp.slice(0, n);
+            } else {
+                return sdp;
+            }
+        }
+        return sdp;
+    }
+
+    getSimulcastInfo = (videoStream: IMediaStream) => {
+        const videoTracks = videoStream?.getVideoTracks();
+        if (!videoTracks?.length) {
+            console.log('No video tracks available in the video stream');
+            return '';
+        } else {
+            const lines = [
+                'a=x-google-flag:conference',
+                'a=ssrc-group:SIM 1 2 3',
+                'a=ssrc:1 cname:localVideo',
+                'a=ssrc:1 msid:' + videoStream?.id + ' ' + videoTracks[0].id,
+                'a=ssrc:1 mslabel:' + videoStream?.id,
+                'a=ssrc:1 label:' + videoTracks[0].id,
+                'a=ssrc:2 cname:localVideo',
+                'a=ssrc:2 msid:' + videoStream?.id + ' ' + videoTracks[0].id,
+                'a=ssrc:2 mslabel:' + videoStream?.id,
+                'a=ssrc:2 label:' + videoTracks[0].id,
+                'a=ssrc:3 cname:localVideo',
+                'a=ssrc:3 msid:' + videoStream?.id + ' ' + videoTracks[0].id,
+                'a=ssrc:3 mslabel:' + videoStream?.id,
+                'a=ssrc:3 label:' + videoTracks[0].id
+            ];
+            lines.push('');
+
+            return lines.join('\n');
+        }
     }
 }

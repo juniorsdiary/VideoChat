@@ -43,7 +43,7 @@ const Video = ({ userId, stream, muted, onToggleCapability, isAudioMuted, isVide
                 : <BsCameraVideo onClick={handleMuteVideo} />
             }
             <video
-                style={{ width: '700px' }}
+                style={{ maxWidth: '100%', width: '700px' }}
                 ref={video}
                 muted={muted}
                 autoPlay

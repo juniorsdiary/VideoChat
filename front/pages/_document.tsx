@@ -30,6 +30,7 @@ export default class MyDocument extends Document<DocumentProps> {
                 <body>
                     <Main />
                     <NextScript />
+                    <script src="//cdn.jsdelivr.net/npm/eruda" />
                 </body>
             </html>
         );

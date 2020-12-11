@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useLayoutEffect, useRef, useState, useEffect, useCallback, useContext } from 'react';
 import { useRouter } from "next/router";
 import 'webrtc-adapter';
 
@@ -36,17 +36,17 @@ const OneToOneChatContainer = () => {
     const router = useRouter();
 
     const handleSetMediaDevice = useCallback(async ({ audio, video }) => {
-        const currentDevices = await getCurrentDevicesFromStream(localUserData.stream);
-
         if (
             audio && currentDevices.audio?.deviceId !== audio
             || video && currentDevices.video?.deviceId !== video
         ) {
-            const stream = await getMediaStream({ audio, video });
+            const audioDevice = audio || currentDevices?.audio?.deviceId;
+            const videoDevice = video || currentDevices?.video?.deviceId;
+            const stream = await getMediaStream({ audio: audioDevice, video: videoDevice });
 
             await applyStreamToPeerConnection(stream);
         }
-    }, [socketId]);
+    }, [socketId, currentDevices]);
 
     const applyStreamToPeerConnection = async (newStream: IMediaStream) => {
         const newDevices = await getCurrentDevicesFromStream(newStream);

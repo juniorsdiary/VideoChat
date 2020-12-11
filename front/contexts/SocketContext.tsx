@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 import io from 'socket.io-client';
 
-const SOCKET_URL = 'ws://localhost:8001';
+const SOCKET_URL = 'https://192.168.0.101';
 
 const DEFAULT_SOCKET = {
     actions: {},
@@ -82,7 +82,7 @@ const SocketContextProvider = (props): JSX.Element => {
         }
         isConnecting = true;
 
-        const socket: SocketIOClient.Socket = io(SOCKET_URL, { transports: ['websocket'], timeout: 10000 });
+        const socket: SocketIOClient.Socket = io(SOCKET_URL);
 
         const events = Object.keys(EVENT_LISTENERS);
 
@@ -93,6 +93,7 @@ const SocketContextProvider = (props): JSX.Element => {
         });
 
         socket.on('connect', () => {
+            console.log('connected');
             isConnecting = false;
             socketRef.current = socket;
             setSocketId(socket.id);

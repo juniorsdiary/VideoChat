@@ -2,6 +2,7 @@ import React from 'react';
 import 'webrtc-adapter';
 
 import { Navigation } from '../Navigation';
+// import { ErudaContainer } from "../common/ErudaContainer";
 
 import { SocketContextProvider } from '../../contexts/SocketContext';
 
@@ -13,6 +14,7 @@ const Layout = ({ children }: IProps): JSX.Element => (
     <SocketContextProvider>
         <Navigation />
         {children}
+        {/*<ErudaContainer />*/}
     </SocketContextProvider>
 );
 

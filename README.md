@@ -25,11 +25,7 @@
 1. GraphQL
 
 ### Things to do
-1. Mute audio and video
-1. Simulcast
-1. Make conference work in Safari
-   
-1. Setting turn
+1. Setting coturn
 1. Payments
 1. Recordings
 1. Streaming of videos

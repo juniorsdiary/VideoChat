@@ -22,7 +22,7 @@ const ChooseDevices = ({ onChooseMediaDevice }: IChooseMediaDeviceProps): JSX.El
     return (
         <div >
             Choose Devices
-            Video
+            Audio
             {audioDevices.map((device: MediaDeviceInfo) => (
                 <Device
                     key={device.deviceId}
@@ -31,7 +31,7 @@ const ChooseDevices = ({ onChooseMediaDevice }: IChooseMediaDeviceProps): JSX.El
                     onChooseDevice={onChooseMediaDevice}
                 />
             ))}
-            Audio
+            Video
             {videoDevices.map((device: MediaDeviceInfo) => (
                 <Device
                     key={device.deviceId}
